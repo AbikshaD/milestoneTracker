@@ -18,6 +18,26 @@ const studentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    totalMarks: {
+        type: Number,
+        default: 0
+    },
+    average: {
+        type: Number,
+        default: 0
+    },
+    grade: {
+        type: String,
+        default: 'N/A'
+    },
+    status: {
+        type: String,
+        default: 'Not Evaluated'
+    },
+    progressRemark: {
+        type: String,
+        default: 'No marks entered'
+    },
     createdAt: {
         type: Date,
         default: Date.now
