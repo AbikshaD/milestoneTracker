@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import MarksEntry from './components/MarksEntry';
 
 function App() {
   const [students, setStudents] = useState([]);
@@ -16,9 +17,11 @@ function App() {
   });
   const [activeTab, setActiveTab] = useState('students');
   const [loading, setLoading] = useState(true);
+  const [statistics, setStatistics] = useState(null);
 
   useEffect(() => {
     fetchData();
+    fetchStatistics();
   }, []);
 
   const fetchData = async () => {
@@ -41,6 +44,16 @@ function App() {
     }
   };
 
+  const fetchStatistics = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/statistics');
+      const data = await response.json();
+      setStatistics(data);
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    }
+  };
+
   const handleAddStudent = async (e) => {
     e.preventDefault();
     try {
@@ -55,9 +68,10 @@ function App() {
       const data = await response.json();
       setStudents([...students, data]);
       setNewStudent({ studentId: '', name: '', class: '', department: '' });
-      alert('Student added successfully!');
+      alert('✅ Student added successfully!');
+      fetchStatistics();
     } catch (error) {
-      alert('Error adding student: ' + error.message);
+      alert('❌ Error adding student: ' + error.message);
     }
   };
 
@@ -75,9 +89,9 @@ function App() {
       const data = await response.json();
       setSubjects([...subjects, data]);
       setNewSubject({ code: '', name: '' });
-      alert('Subject added successfully!');
+      alert('✅ Subject added successfully!');
     } catch (error) {
-      alert('Error adding subject: ' + error.message);
+      alert('❌ Error adding subject: ' + error.message);
     }
   };
 
@@ -85,17 +99,45 @@ function App() {
     try {
       const response = await fetch('http://localhost:5000/api/test-data');
       const data = await response.json();
-      alert(data.message);
+      alert(`✅ ${data.message}`);
       fetchData();
+      fetchStatistics();
     } catch (error) {
-      alert('Error loading test data: ' + error.message);
+      alert('❌ Error loading test data: ' + error.message);
     }
   };
 
-  if (loading) {
+  const loadTestMarks = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/test-marks');
+      const data = await response.json();
+      alert(`✅ ${data.message}\nStudents: ${data.students.join(', ')}`);
+      fetchData();
+      fetchStatistics();
+    } catch (error) {
+      alert('❌ Error loading test marks: ' + error.message);
+    }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    if (window.confirm('Are you sure you want to delete this student?')) {
+      try {
+        // Note: In Phase 4, we'll add proper DELETE endpoint
+        alert('Delete functionality will be added in Phase 4');
+        // For now, just show the alert
+      } catch (error) {
+        alert('❌ Error deleting student: ' + error.message);
+      }
+    }
+  };
+
+  if (loading && students.length === 0) {
     return (
       <div className="App">
-        <div className="loading">Loading data...</div>
+        <div className="loading-screen">
+          <div className="spinner"></div>
+          <h2>Loading Learning Progress Monitor...</h2>
+        </div>
       </div>
     );
   }
@@ -105,6 +147,31 @@ function App() {
       <header className="App-header">
         <h1>📚 Learning Progress Monitor</h1>
         <p>Track and manage student academic performance</p>
+        
+        {statistics && (
+          <div className="header-stats">
+            <div className="stat-item">
+              <span className="stat-number">{statistics.totalStudents || 0}</span>
+              <span className="stat-label">Total Students</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">{statistics.totalSubjects || 0}</span>
+              <span className="stat-label">Subjects</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">{statistics.passedStudents || 0}</span>
+              <span className="stat-label">Passed</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">{statistics.failedStudents || 0}</span>
+              <span className="stat-label">Failed</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">{statistics.passPercentage || '0'}%</span>
+              <span className="stat-label">Pass Rate</span>
+            </div>
+          </div>
+        )}
       </header>
 
       <nav className="tabs">
@@ -121,11 +188,25 @@ function App() {
           📖 Subjects ({subjects.length})
         </button>
         <button 
-          className="test-btn"
-          onClick={loadTestData}
+          className={activeTab === 'marks' ? 'active' : ''} 
+          onClick={() => setActiveTab('marks')}
         >
-          🔄 Load Test Data
+          📝 Marks Entry
         </button>
+        <div className="test-buttons">
+          <button 
+            className="test-btn"
+            onClick={loadTestData}
+          >
+            🔄 Load Test Data
+          </button>
+          <button 
+            className="test-btn marks-btn"
+            onClick={loadTestMarks}
+          >
+            📊 Add Test Marks
+          </button>
+        </div>
       </nav>
 
       <main className="App-main">
@@ -172,7 +253,14 @@ function App() {
 
             {/* Student List */}
             <div className="list-container">
-              <h3>Student List</h3>
+              <div className="list-header">
+                <h3>Student List</h3>
+                <div className="list-stats">
+                  <span>Total: {students.length}</span>
+                  <span>Passed: {students.filter(s => s.status === 'Pass').length}</span>
+                  <span>Failed: {students.filter(s => s.status === 'Fail').length}</span>
+                </div>
+              </div>
               <table>
                 <thead>
                   <tr>
@@ -180,6 +268,9 @@ function App() {
                     <th>Name</th>
                     <th>Class</th>
                     <th>Department</th>
+                    <th>Average</th>
+                    <th>Grade</th>
+                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -191,8 +282,33 @@ function App() {
                       <td>{student.class}</td>
                       <td>{student.department}</td>
                       <td>
+                        <span className={
+                          student.average >= 80 ? 'excellent' :
+                          student.average >= 70 ? 'good' :
+                          student.average >= 60 ? 'average' :
+                          student.average >= 50 ? 'below-average' : 'poor'
+                        }>
+                          {student.average}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`grade-badge grade-${student.grade.toLowerCase().replace('+', 'plus')}`}>
+                          {student.grade}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${student.status === 'Pass' ? 'pass' : 'fail'}`}>
+                          {student.status}
+                        </span>
+                      </td>
+                      <td>
                         <button className="btn-edit">✏️ Edit</button>
-                        <button className="btn-delete">🗑️ Delete</button>
+                        <button 
+                          className="btn-delete"
+                          onClick={() => handleDeleteStudent(student._id)}
+                        >
+                          🗑️ Delete
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -244,7 +360,7 @@ function App() {
                 <tbody>
                   {subjects.map(subject => (
                     <tr key={subject._id}>
-                      <td>{subject.code}</td>
+                      <td><strong>{subject.code}</strong></td>
                       <td>{subject.name}</td>
                       <td>
                         <button className="btn-edit">✏️ Edit</button>
@@ -257,10 +373,28 @@ function App() {
             </div>
           </div>
         )}
+
+        {activeTab === 'marks' && (
+          <div className="section">
+            <MarksEntry 
+              students={students}
+              subjects={subjects}
+              onMarkAdded={() => {
+                fetchData();
+                fetchStatistics();
+              }}
+            />
+          </div>
+        )}
       </main>
 
       <footer className="App-footer">
-        <p>Learning Progress Monitor v2.0 | Total Students: {students.length} | Total Subjects: {subjects.length}</p>
+        <p>Learning Progress Monitor v3.0 | Phase 3: Marks Entry & Progress Calculation</p>
+        <p className="footer-links">
+          <span>Students: {students.length}</span> • 
+          <span>Subjects: {subjects.length}</span> • 
+          <span>Pass Rate: {statistics ? statistics.passPercentage + '%' : '0%'}</span>
+        </p>
       </footer>
     </div>
   );
