@@ -4,25 +4,69 @@ const studentSchema = new mongoose.Schema({
     studentId: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        uppercase: true
     },
     name: {
         type: String,
         required: true
     },
-    class: {
+    email: {
         type: String,
-        required: true
+        lowercase: true,
+        unique: true
+    },
+    phone: {
+        type: String
     },
     department: {
         type: String,
-        required: true
+        required: true,
+        enum: ['CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL', 'CHEMICAL', 'AERO']
     },
-    totalMarks: {
+    semester: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 8
+    },
+    section: {
+        type: String,
+        uppercase: true,
+        maxlength: 1
+    },
+    academicYear: {
+        type: String,
+        required: true,
+        match: /^\d{4}-\d{4}$/
+    },
+    dateOfBirth: {
+        type: Date
+    },
+    admissionDate: {
+        type: Date,
+        default: Date.now
+    },
+    address: {
+        type: String
+    },
+    cgpa: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 10
+    },
+    sgpa: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 10
+    },
+    totalCredits: {
         type: Number,
         default: 0
     },
-    average: {
+    earnedCredits: {
         type: Number,
         default: 0
     },
@@ -32,7 +76,8 @@ const studentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        default: 'Not Evaluated'
+        default: 'Active',
+        enum: ['Active', 'Passed', 'Failed', 'Not Evaluated', 'Dropout', 'Graduated']
     },
     progressRemark: {
         type: String,
@@ -42,6 +87,13 @@ const studentSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
+});
+
+studentSchema.index({ 
+    name: 'text', 
+    studentId: 'text', 
+    department: 'text',
+    email: 'text'
 });
 
 module.exports = mongoose.model('Student', studentSchema);
